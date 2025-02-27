@@ -24,8 +24,6 @@ class CLIPFineTuner(nn.Module):
         # Delegate to the base CLIP model's image encoder
         return self.model.encode_image(image)
 
-
-
 def load_basic_clip_model():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load("ViT-B/32", device=device)
@@ -57,7 +55,7 @@ def load_custom_clip_model(model_path="clip_finetuned.pth", num_classes=13):
         transforms.Normalize(mean=[0.481, 0.457, 0.408], std=[0.268, 0.261, 0.275])
     ])
 
-    print("Custom mode:", model)
+    #print("Custom mode:", model)
     return model, preprocess, device
 
 '''
