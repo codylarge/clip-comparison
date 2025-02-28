@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 from PIL import Image
-from classes import get_candidate_captions 
+from classes import get_candidate_captions, get_classes
 
 class CLIPFineTuner(nn.Module):
     def __init__(self, model, num_classes):
@@ -132,3 +132,36 @@ def classify_image(image_path, model, preprocess, device):
     classified_class = best_caption.split(":")[0]
 
     return classified_class, best_caption, similarity[best_match_index].item()
+
+def classify_v2(image_path, model, preprocess, device):
+    # Get candidate captions and their features
+    custom_captions, subcategories = get_classes()
+    text_inputs = torch.cat([clip.tokenize(custom_captions[c]) for c in subcategories]).to(device)
+
+    # Load and preprocess the image
+    image = Image.open(image_path)
+    image = preprocess(image).unsqueeze(0).to(device)  # Apply CLIP preprocessing
+
+    # Extract image and text features
+    image_features = model.encode_image(image)
+    image_features /= image_features.norm(dim=-1, keepdim=True)
+
+    text_features = model.encode_text(text_inputs)
+    text_features /= text_features.norm(dim=-1, keepdim=True)
+
+    # Compute similarity between image and text features
+    similarity = image_features @ text_features.T  # Shape: (1, num_classes)
+
+    # Find the caption with the highest similarity score
+    predicted_index = similarity.argmax(dim=-1).item()  # Convert tensor to int
+    predicted_label = subcategories[predicted_index]
+    best_similarity_score = similarity[0, predicted_index].item()  # Extract top similarity score
+
+    return predicted_label, best_similarity_score  # String, Number
+
+    #best_caption = candidate_captions[best_match_index]
+
+    # Extract the class name from the best caption
+    #classified_class = best_caption.split(":")[0]
+
+    #return classified_class, best_caption, similarity[best_match_index].item()
